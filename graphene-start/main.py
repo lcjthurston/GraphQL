@@ -14,12 +14,40 @@ class CreateUser(Mutation):
 
     user = Field(UserType)
 
-    def mutate(self, info, name, age):
+    @staticmethod
+    def mutate(root, info, name, age):
         user = {"id": len(Query.users) + 1, "name": name, "age": age}
         Query.users.append(user)
         return CreateUser(user=user)
 
 
+class UpdateUser(Mutation):
+    class Arguments:
+        user_id = Int(required=True)
+        name = String()
+        age = Int()
+
+    user = Field(UserType)
+
+    @staticmethod
+    def mutate(root, info, user_id, name=None, age=None):
+        user = None
+        for u in Query.users: 
+            if u["id"] == user_id:
+                user = u
+                break
+        
+        if not user:
+            return None
+
+        if name is not None:
+            user["name"] = name
+
+        if age is not None:
+            user["age"] = age
+
+        return UpdateUser(user=user)      
+        
 class Query(ObjectType):
     user = Field(UserType, user_id=Int())
     users_by_min_age = List(UserType, min_age=Int())
@@ -44,6 +72,7 @@ class Query(ObjectType):
 
 class Mutation(ObjectType):
     create_user = CreateUser.Field()
+    update_user = UpdateUser.Field()
 
 # OOP aside
 # - instance methods (first argument is self)
@@ -52,9 +81,9 @@ class Mutation(ObjectType):
 
 schema = Schema(query=Query, mutation=Mutation)
 
-gql_2 = '''
+gql_query = '''
 query {
-    user(userId: 5) {
+    user(userId: 1) {
         name
         age    
     }
@@ -71,9 +100,21 @@ query {
 # }
 # '''
 
-gql = '''
+# gql = '''
+# mutation {
+#     createUser(name: "New User", age: 25) {
+#         user {
+#             id
+#             name
+#             age
+#         }    
+#     }
+# }
+# '''
+
+gql_update = '''
 mutation {
-    createUser(name: "New User", age: 25) {
+    updateUser(userId: 1, name: "Updated User", age: 49) {
         user {
             id
             name
@@ -83,8 +124,11 @@ mutation {
 }
 '''
 
+
 if __name__ == "__main__":
-    result = schema.execute(gql)
+    result = schema.execute(gql_query)
     print(result)
-    result = schema.execute(gql_2)
+    result = schema.execute(gql_update)
+    print(result)
+    result = schema.execute(gql_query)
     print(result)
